@@ -1,0 +1,6 @@
+{
+  "name": "3D Study PDF",
+  "description": "Next-gen 3D study PDF reader with crazy 3D tilt animations, realistic page curl, focus Pomodoro study timer, ambient soundscapes, and smart notes organizer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

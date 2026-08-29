@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- 3D Shadow -->
+    <path
+        android:pathData="M30,78 L54,90 L78,78 L54,66 Z"
+        android:fillColor="#50000000" />
+        
+    <!-- 3D Isometric Book Base Left -->
+    <path
+        android:pathData="M30,42 L54,54 L54,78 L30,66 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="30"
+                android:startY="42"
+                android:endX="54"
+                android:endY="78"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#4F46E5" />
+                <item android:offset="1.0" android:color="#3730A3" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3D Isometric Book Base Right -->
+    <path
+        android:pathData="M54,54 L78,42 L78,66 L54,78 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="42"
+                android:endX="78"
+                android:endY="78"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#818CF8" />
+                <item android:offset="1.0" android:color="#6366F1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3D Isometric Book Top Left Page -->
+    <path
+        android:pathData="M30,38 L54,50 L54,52 L30,40 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="30"
+                android:startY="38"
+                android:endX="54"
+                android:endY="52"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#E0E7FF" />
+                <item android:offset="1.0" android:color="#C7D2FE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3D Isometric Book Top Right Page -->
+    <path
+        android:pathData="M54,50 L78,38 L78,40 L54,52 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="38"
+                android:endX="78"
+                android:endY="52"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="1.0" android:color="#E0E7FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Holographic 3D Floating Crystal / Bookmark -->
+    <path
+        android:pathData="M54,22 L64,32 L54,42 L44,32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="44"
+                android:startY="22"
+                android:endX="64"
+                android:endY="42"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#38BDF8" />
+                <item android:offset="0.5" android:color="#A855F7" />
+                <item android:offset="1.0" android:color="#EC4899" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    
+    <!-- Top crystal highlight -->
+    <path
+        android:pathData="M54,22 L59,27 L54,32 L49,27 Z"
+        android:fillColor="#80FFFFFF" />
+
+    <!-- 3D Floating Study Atom / Sparkle dots -->
+    <path
+        android:pathData="M34,28 M34,26 A2,2 0 1,1 34,30 A2,2 0 1,1 34,26"
+        android:fillColor="#38BDF8" />
+    <path
+        android:pathData="M74,28 M74,26 A2,2 0 1,1 74,30 A2,2 0 1,1 74,26"
+        android:fillColor="#F472B6" />
+</vector>
