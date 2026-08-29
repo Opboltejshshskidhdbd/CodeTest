@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Search
@@ -150,7 +151,10 @@ fun HomeScreen(
         ) {
             // Vibrant Palette Top Header Bar
             item {
-                VibrantHeaderSection()
+                VibrantHeaderSection(
+                    onOpenThemeDialog = { viewModel.setShowThemeDialog(true) },
+                    onImportPdf = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }
+                )
             }
 
             // Next Up / Active Study Vibrant Hero Card
@@ -342,7 +346,10 @@ fun HomeScreen(
 }
 
 @Composable
-private fun VibrantHeaderSection() {
+private fun VibrantHeaderSection(
+    onOpenThemeDialog: () -> Unit,
+    onImportPdf: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -363,8 +370,8 @@ private fun VibrantHeaderSection() {
         ) {
             Column {
                 Text(
-                    text = "GOOD MORNING",
-                    fontSize = 12.sp,
+                    text = "FOCUS & STUDY",
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = VibrantBlue,
                     letterSpacing = 1.6.sp
@@ -379,25 +386,49 @@ private fun VibrantHeaderSection() {
                 )
             }
 
-            // Vibrant Avatar Badge
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color(0x403B82F6))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(Color(0xFF3B82F6), Color(0xFF4F46E5))
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "3D",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 18.sp,
-                    color = Color.White
-                )
+                // Theme Customizer Button
+                IconButton(
+                    onClick = onOpenThemeDialog,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFF1F5F9))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = "Customize Theme",
+                        tint = VibrantBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Import PDF Button
+                Button(
+                    onClick = onImportPdf,
+                    colors = ButtonDefaults.buttonColors(containerColor = VibrantBlue),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.height(42.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.UploadFile,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Import PDF",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
     }

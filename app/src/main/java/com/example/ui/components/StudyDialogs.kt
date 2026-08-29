@@ -277,3 +277,286 @@ fun DocumentInfoDialog(
         }
     }
 }
+
+@Composable
+fun CustomPomodoroSettingsDialog(
+    pomodoro: com.example.data.model.PomodoroSession,
+    onSave: (focusMin: Int, shortBreakMin: Int, longBreakMin: Int, rounds: Int, autoAdvance: Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var focusMinutes by remember { mutableStateOf(pomodoro.focusDurationMinutes.toFloat()) }
+    var shortBreakMinutes by remember { mutableStateOf(pomodoro.shortBreakMinutes.toFloat()) }
+    var longBreakMinutes by remember { mutableStateOf(pomodoro.longBreakMinutes.toFloat()) }
+    var rounds by remember { mutableStateOf(pomodoro.roundsBeforeLongBreak.toFloat()) }
+    var autoAdvance by remember { mutableStateOf(pomodoro.autoAdvanceCycles) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(24.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(22.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEFF6FF)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = Color(0xFF2563EB),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Custom Pomodoro",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = "Configure intervals & rounds",
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF94A3B8))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Presets
+                Text("QUICK PRESETS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(
+                        Triple("Standard", 25, 5),
+                        Triple("Deep Focus", 50, 10),
+                        Triple("Sprint", 15, 3),
+                        Triple("Ultradian", 90, 20)
+                    ).forEach { (label, f, s) ->
+                        val isSelected = focusMinutes.toInt() == f && shortBreakMinutes.toInt() == s
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) Color(0xFF2563EB) else Color(0xFFF1F5F9))
+                                .clickable {
+                                    focusMinutes = f.toFloat()
+                                    shortBreakMinutes = s.toFloat()
+                                }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else Color(0xFF334155)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Focus Duration Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Focus Duration", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
+                    Text("${focusMinutes.toInt()} min", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                }
+                androidx.compose.material3.Slider(
+                    value = focusMinutes,
+                    onValueChange = { focusMinutes = it },
+                    valueRange = 5f..120f,
+                    steps = 22
+                )
+
+                // Short Break Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Short Break", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
+                    Text("${shortBreakMinutes.toInt()} min", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                }
+                androidx.compose.material3.Slider(
+                    value = shortBreakMinutes,
+                    onValueChange = { shortBreakMinutes = it },
+                    valueRange = 1f..30f,
+                    steps = 28
+                )
+
+                // Long Break Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Long Break (after ${rounds.toInt()} rounds)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
+                    Text("${longBreakMinutes.toInt()} min", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7C3AED))
+                }
+                androidx.compose.material3.Slider(
+                    value = longBreakMinutes,
+                    onValueChange = { longBreakMinutes = it },
+                    valueRange = 5f..60f,
+                    steps = 10
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = {
+                        onSave(
+                            focusMinutes.toInt(),
+                            shortBreakMinutes.toInt(),
+                            longBreakMinutes.toInt(),
+                            rounds.toInt(),
+                            autoAdvance
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("Apply & Start Custom Timer", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AppThemeCustomizerDialog(
+    currentTheme: com.example.data.model.AppVisualTheme,
+    onSelectTheme: (com.example.data.model.AppVisualTheme) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(24.dp))
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Customize App Theme",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF94A3B8))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                com.example.data.model.AppVisualTheme.values().forEach { theme ->
+                    val isSelected = (theme == currentTheme)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(theme.bgHex))
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) Color(theme.primaryHex) else Color(theme.borderHex),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .clickable { onSelectTheme(theme) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(theme.primaryHex))
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = theme.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(theme.textPrimaryHex)
+                                    )
+                                    Text(
+                                        text = if (theme.isDark) "Immersive Dark Canvas" else "Clean Light Canvas",
+                                        fontSize = 10.sp,
+                                        color = Color(theme.textSecondaryHex)
+                                    )
+                                }
+                            }
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(theme.primaryHex)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = "Active",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Done", color = Color(0xFF334155), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}

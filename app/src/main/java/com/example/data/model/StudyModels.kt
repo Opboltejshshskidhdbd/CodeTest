@@ -2,6 +2,25 @@ package com.example.data.model
 
 import android.net.Uri
 
+enum class AppVisualTheme(
+    val id: String,
+    val title: String,
+    val bgHex: Long,
+    val cardHex: Long,
+    val primaryHex: Long,
+    val secondaryHex: Long,
+    val textPrimaryHex: Long,
+    val textSecondaryHex: Long,
+    val borderHex: Long,
+    val isDark: Boolean
+) {
+    VIBRANT_LIGHT("vibrant_light", "Vibrant Sky", 0xFFF7F9FF, 0xFFFFFFFF, 0xFF2563EB, 0xFF7C3AED, 0xFF0F172A, 0xFF64748B, 0xFFE2E8F0, false),
+    MIDNIGHT_OLED("midnight_oled", "Midnight OLED", 0xFF070B14, 0xFF0F172A, 0xFF6366F1, 0xFF06B6D4, 0xFFF8FAFC, 0xFF94A3B8, 0xFF1E293B, true),
+    WARM_SEPIA("warm_sepia", "Paper Sepia", 0xFFFAF4EB, 0xFFFFFDF9, 0xFFD97706, 0xFFB45309, 0xFF3D2E1E, 0xFF786551, 0xFFEAE0D0, false),
+    AURORA_MINT("aurora_mint", "Aurora Mint", 0xFF041C15, 0xFF0B3026, 0xFF10B981, 0xFF06B6D4, 0xFFECFDF5, 0xFF6EE7B7, 0xFF134E3F, true),
+    SUNSET_ROSE("sunset_rose", "Sunset Rose", 0xFFFFF5F7, 0xFFFFFFFF, 0xFFEC4899, 0xFFF43F5E, 0xFF28101E, 0xFF835A6E, 0xFFFCE7F3, false)
+}
+
 enum class ReaderTheme(
     val id: String,
     val title: String,
@@ -70,6 +89,7 @@ data class StudyDocument(
     val folderId: String = "default",
     val uriString: String? = null,
     val isBundledSample: Boolean = false,
+    val isRealPdf: Boolean = false,
     val sampleType: String? = null, // physics, math, chem, ai, history
     val totalPages: Int = 12,
     val lastReadPage: Int = 1,
@@ -94,13 +114,28 @@ enum class AmbientSound(val title: String, val subtitle: String, val colorHex: L
     SILENT("Silent Study", "Absolute tranquility", 0xFF64748B)
 }
 
+enum class PomodoroStage(val title: String, val colorHex: Long) {
+    FOCUS("Focus Time", 0xFF2563EB),
+    SHORT_BREAK("Short Break", 0xFF10B981),
+    LONG_BREAK("Long Break", 0xFF7C3AED)
+}
+
 data class PomodoroSession(
+    val focusDurationMinutes: Int = 25,
+    val shortBreakMinutes: Int = 5,
+    val longBreakMinutes: Int = 15,
+    val roundsBeforeLongBreak: Int = 4,
+    val currentRound: Int = 1,
     val modeMinutes: Int = 25,
     val remainingSeconds: Int = 25 * 60,
     val isRunning: Boolean = false,
-    val isBreak: Boolean = false,
+    val stage: PomodoroStage = PomodoroStage.FOCUS,
     val completedSessionsToday: Int = 3,
     val streakDays: Int = 7,
     val activeAmbientSound: AmbientSound = AmbientSound.LOFI_BEATS,
-    val ambientVolume: Float = 0.7f
-)
+    val ambientVolume: Float = 0.7f,
+    val autoAdvanceCycles: Boolean = true
+) {
+    val isBreak: Boolean get() = stage != PomodoroStage.FOCUS
+}
+

@@ -7,9 +7,11 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.AmbientSound
+import com.example.data.model.AppVisualTheme
 import com.example.data.model.FlashcardItem
 import com.example.data.model.NoteCategory
 import com.example.data.model.PomodoroSession
+import com.example.data.model.PomodoroStage
 import com.example.data.model.ReaderTheme
 import com.example.data.model.ReadingMode
 import com.example.data.model.StudyDocument
@@ -38,6 +40,7 @@ enum class ScreenDestination {
 
 data class StudyUiState(
     val currentScreen: ScreenDestination = ScreenDestination.HOME,
+    val appTheme: AppVisualTheme = AppVisualTheme.VIBRANT_LIGHT,
     val documents: List<StudyDocument> = SampleStudyData.sampleDocuments,
     val folders: List<StudyFolder> = SampleStudyData.sampleFolders,
     val notes: List<StudyNote> = SampleStudyData.sampleNotes,
@@ -64,11 +67,13 @@ data class StudyUiState(
     // Pomodoro Focus Session
     val pomodoro: PomodoroSession = PomodoroSession(),
     
-    // Quick Add Dialogs
+    // Quick Add & Customization Dialogs
     val showAddFolderDialog: Boolean = false,
     val showAddNoteDialog: Boolean = false,
     val showCreateDocDialog: Boolean = false,
     val showDocInfoDialog: Boolean = false,
+    val showCustomTimerDialog: Boolean = false,
+    val showThemeDialog: Boolean = false,
     
     // Daily Study Metrics
     val totalStudyMinutesToday: Int = 78,
@@ -190,6 +195,28 @@ class StudyPdfViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun deleteDocument(documentId: String) {
+        _uiState.update { state ->
+            val remaining = state.documents.filter { it.id != documentId }
+            state.copy(
+                documents = remaining,
+                activeDocument = if (state.activeDocument?.id == documentId) remaining.firstOrNull() else state.activeDocument
+            )
+        }
+    }
+
+    fun setAppTheme(theme: AppVisualTheme) {
+        _uiState.update { it.copy(appTheme = theme, showThemeDialog = false) }
+    }
+
+    fun setShowThemeDialog(show: Boolean) {
+        _uiState.update { it.copy(showThemeDialog = show) }
+    }
+
+    fun setShowCustomTimerDialog(show: Boolean) {
+        _uiState.update { it.copy(showCustomTimerDialog = show) }
+    }
+
     fun toggleTts() {
         if (_uiState.value.isTtsSpeaking) {
             tts?.stop()
@@ -280,19 +307,30 @@ class StudyPdfViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(flashcards = it.flashcards + newCard) }
     }
 
-    fun importPdfFromUri(uri: Uri, fileName: String?) {
+    fun importPdfFromUri(uri: Uri, defaultName: String? = null) {
         viewModelScope.launch {
-            val title = fileName?.replace(".pdf", "", ignoreCase = true) ?: "Imported Study PDF"
+            val fileName = pdfManager.getFileNameFromUri(uri)
+            val title = if (fileName.isNotBlank() && !fileName.equals("Document.pdf", ignoreCase = true)) {
+                fileName.replace(".pdf", "", ignoreCase = true)
+            } else {
+                defaultName ?: "Imported PDF"
+            }
+            val totalPages = pdfManager.openDocument(uri.toString(), null)
             val newDoc = StudyDocument(
                 id = UUID.randomUUID().toString(),
                 title = title,
-                subject = "Imported Materials",
+                subject = "My PDF Material",
                 folderId = _uiState.value.selectedFolderId ?: "default",
                 uriString = uri.toString(),
                 isBundledSample = false,
-                totalPages = 10,
+                isRealPdf = true,
+                totalPages = totalPages.coerceAtLeast(1),
                 lastReadPage = 1,
-                tags = listOf("Imported", "PDF")
+                tags = listOf("PDF", "Imported", "Notes"),
+                aiSummaryPoints = listOf(
+                    "Original PDF document imported from storage.",
+                    "Full 3D page flip and high-clarity rendered view enabled."
+                )
             )
             _uiState.update {
                 it.copy(
@@ -388,16 +426,90 @@ class StudyPdfViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(showDocInfoDialog = show) }
     }
 
-    // Pomodoro Timer Controls
+    // Pomodoro Timer Controls & Customization
     fun setPomodoroMode(minutes: Int) {
         pomodoroJob?.cancel()
+        val stage = if (minutes <= 5) PomodoroStage.SHORT_BREAK else if (minutes <= 15) PomodoroStage.LONG_BREAK else PomodoroStage.FOCUS
         _uiState.update {
             it.copy(
                 pomodoro = it.pomodoro.copy(
                     modeMinutes = minutes,
                     remainingSeconds = minutes * 60,
                     isRunning = false,
-                    isBreak = (minutes <= 15)
+                    stage = stage
+                )
+            )
+        }
+    }
+
+    fun updatePomodoroSettings(
+        focusMinutes: Int,
+        shortBreakMinutes: Int,
+        longBreakMinutes: Int,
+        rounds: Int,
+        autoAdvance: Boolean
+    ) {
+        pomodoroJob?.cancel()
+        _uiState.update {
+            val updated = it.pomodoro.copy(
+                focusDurationMinutes = focusMinutes,
+                shortBreakMinutes = shortBreakMinutes,
+                longBreakMinutes = longBreakMinutes,
+                roundsBeforeLongBreak = rounds,
+                autoAdvanceCycles = autoAdvance,
+                modeMinutes = focusMinutes,
+                remainingSeconds = focusMinutes * 60,
+                stage = PomodoroStage.FOCUS,
+                isRunning = false
+            )
+            it.copy(pomodoro = updated, showCustomTimerDialog = false)
+        }
+    }
+
+    fun adjustPomodoroTime(secondsDelta: Int) {
+        _uiState.update {
+            val newSeconds = (it.pomodoro.remainingSeconds + secondsDelta).coerceIn(10, 180 * 60)
+            it.copy(
+                pomodoro = it.pomodoro.copy(
+                    remainingSeconds = newSeconds,
+                    modeMinutes = (newSeconds / 60).coerceAtLeast(1)
+                )
+            )
+        }
+    }
+
+    fun skipPomodoroStage() {
+        pomodoroJob?.cancel()
+        _uiState.update {
+            val p = it.pomodoro
+            val nextStage: PomodoroStage
+            val nextMinutes: Int
+            var nextRound = p.currentRound
+
+            if (p.stage == PomodoroStage.FOCUS) {
+                if (p.currentRound >= p.roundsBeforeLongBreak) {
+                    nextStage = PomodoroStage.LONG_BREAK
+                    nextMinutes = p.longBreakMinutes
+                    nextRound = 1
+                } else {
+                    nextStage = PomodoroStage.SHORT_BREAK
+                    nextMinutes = p.shortBreakMinutes
+                }
+            } else {
+                nextStage = PomodoroStage.FOCUS
+                nextMinutes = p.focusDurationMinutes
+                if (p.stage == PomodoroStage.SHORT_BREAK) {
+                    nextRound = p.currentRound + 1
+                }
+            }
+
+            it.copy(
+                pomodoro = p.copy(
+                    stage = nextStage,
+                    modeMinutes = nextMinutes,
+                    remainingSeconds = nextMinutes * 60,
+                    currentRound = nextRound,
+                    isRunning = false
                 )
             )
         }
@@ -414,23 +526,27 @@ class StudyPdfViewModel(application: Application) : AndroidViewModel(application
                 while (_uiState.value.pomodoro.remainingSeconds > 0 && _uiState.value.pomodoro.isRunning) {
                     delay(1000)
                     _uiState.update {
+                        val remaining = (it.pomodoro.remainingSeconds - 1).coerceAtLeast(0)
                         it.copy(
-                            pomodoro = it.pomodoro.copy(
-                                remainingSeconds = (it.pomodoro.remainingSeconds - 1).coerceAtLeast(0)
-                            ),
-                            totalStudyMinutesToday = if (!it.pomodoro.isBreak) it.totalStudyMinutesToday + (if (it.pomodoro.remainingSeconds % 60 == 0) 1 else 0) else it.totalStudyMinutesToday
+                            pomodoro = it.pomodoro.copy(remainingSeconds = remaining),
+                            totalStudyMinutesToday = if (!it.pomodoro.isBreak && remaining % 60 == 0) it.totalStudyMinutesToday + 1 else it.totalStudyMinutesToday
                         )
                     }
                 }
                 if (_uiState.value.pomodoro.remainingSeconds <= 0) {
                     // Session Completed
+                    val p = _uiState.value.pomodoro
+                    val completed = if (!p.isBreak) p.completedSessionsToday + 1 else p.completedSessionsToday
                     _uiState.update {
                         it.copy(
                             pomodoro = it.pomodoro.copy(
                                 isRunning = false,
-                                completedSessionsToday = it.pomodoro.completedSessionsToday + 1
+                                completedSessionsToday = completed
                             )
                         )
+                    }
+                    if (p.autoAdvanceCycles) {
+                        skipPomodoroStage()
                     }
                 }
             }

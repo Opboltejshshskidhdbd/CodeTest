@@ -31,12 +31,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -60,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AmbientSound
+import com.example.data.model.PomodoroStage
 import com.example.ui.components.threed.ThreeDStudyParticleField
 import com.example.ui.components.threed.threeDTilt
 import com.example.ui.theme.VibrantBg
@@ -101,274 +106,360 @@ fun PomodoroScreen(
         // Subtle ambient floating particles
         ThreeDStudyParticleField(modifier = Modifier.fillMaxSize(), particleCount = 18)
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(bottom = 120.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Top Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                IconButton(
-                    onClick = { viewModel.navigateTo(ScreenDestination.HOME) },
-                    modifier = Modifier
-                        .size(44.dp)
-                        .shadow(2.dp, CircleShape, spotColor = Color(0x0A000000))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE2E8F0), CircleShape)
-                        .testTag("pomodoro_back_button")
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF0F172A))
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFFFFBEB))
-                        .border(1.dp, Color(0xFFFDE68A), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = null,
-                        tint = VibrantOrange,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${uiState.studyStreakDays} Day Streak",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFB45309)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = if (pomodoro.isBreak) "Recharge & Rest" else "3D Focus Room",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-                color = VibrantTextDark
-            )
-            Text(
-                text = "Binaural soundscape & active deep study timer",
-                style = MaterialTheme.typography.bodySmall,
-                color = VibrantTextMuted
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Mode Selector Pills
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(2.dp, RoundedCornerShape(20.dp), spotColor = Color(0x0A000000))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
-                    .padding(4.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    listOf(
-                        Pair(25, "25m Study"),
-                        Pair(5, "5m Break"),
-                        Pair(50, "50m Deep"),
-                        Pair(15, "15m Rest")
-                    ).forEach { (modeMins, title) ->
-                        val isCur = (pomodoro.modeMinutes == modeMins)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(
-                                    if (isCur) VibrantBlue else Color.Transparent
-                                )
-                                .clickable { viewModel.setPomodoroMode(modeMins) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = title,
-                                fontSize = 11.sp,
-                                fontWeight = if (isCur) FontWeight.Bold else FontWeight.SemiBold,
-                                color = if (isCur) Color.White else Color(0xFF64748B)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 3D Glowing Animated Focus Ring
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .threeDTilt(maxRotationDegrees = 12f, scaleOnTouch = 1.04f),
-                contentAlignment = Alignment.Center
-            ) {
-                GlowingFocusRingCanvas(
-                    progress = progress,
-                    isRunning = pomodoro.isRunning,
-                    isBreak = pomodoro.isBreak
-                )
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = timeFormatted,
-                        fontSize = 44.sp,
-                        fontWeight = FontWeight.Black,
-                        color = VibrantTextDark,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                    )
-                    Text(
-                        text = if (pomodoro.isRunning) (if (pomodoro.isBreak) "BREAK TIME" else "FOCUSING") else "PAUSED",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (pomodoro.isRunning) VibrantBlue else Color(0xFF94A3B8)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Timer Controls (Start/Pause, Reset)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { viewModel.resetPomodoro() },
-                    modifier = Modifier
-                        .size(54.dp)
-                        .shadow(4.dp, CircleShape, spotColor = Color(0x10000000))
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE2E8F0), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Reset",
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Button(
-                    onClick = { viewModel.togglePomodoroTimer() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (pomodoro.isRunning) Color(0xFFEF4444) else VibrantBlue
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    contentPadding = PaddingValues(horizontal = 36.dp, vertical = 14.dp),
-                    modifier = Modifier
-                        .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = if (pomodoro.isRunning) Color(0x33EF4444) else Color(0x332563EB))
-                        .testTag("pomodoro_toggle_button")
-                ) {
-                    Icon(
-                        imageVector = if (pomodoro.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (pomodoro.isRunning) "PAUSE FOCUS" else "START FOCUS",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Ambient Soundscape Selector
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(3.dp, RoundedCornerShape(24.dp), spotColor = Color(0x0A000000))
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(24.dp))
-                    .padding(16.dp)
-            ) {
+                // Top Bar
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(VibrantBlueLight),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Headphones,
-                                contentDescription = null,
-                                tint = VibrantBlue,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Ambient Soundscape",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = VibrantTextDark
-                        )
+                    IconButton(
+                        onClick = { viewModel.navigateTo(ScreenDestination.HOME) },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .shadow(2.dp, CircleShape, spotColor = Color(0x0A000000))
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                            .testTag("pomodoro_back_button")
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF0F172A))
                     }
 
-                    // Sound active indicator
-                    if (pomodoro.activeAmbientSound != AmbientSound.SILENT) {
-                        AnimatedSoundVisualizer(color = Color(pomodoro.activeAmbientSound.colorHex))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Custom settings dialog button
+                        IconButton(
+                            onClick = { viewModel.setShowCustomTimerDialog(true) },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .shadow(2.dp, CircleShape, spotColor = Color(0x0A000000))
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                                .testTag("custom_pomodoro_settings_button")
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = "Custom Settings", tint = VibrantBlue)
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFFFFBEB))
+                                .border(1.dp, Color(0xFFFDE68A), RoundedCornerShape(14.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = VibrantOrange,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${uiState.studyStreakDays} Day Streak",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFB45309)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Title & Stage Badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                when (pomodoro.stage) {
+                                    PomodoroStage.FOCUS -> Color(0xFFEFF6FF)
+                                    PomodoroStage.SHORT_BREAK -> Color(0xFFECFDF5)
+                                    PomodoroStage.LONG_BREAK -> Color(0xFFF5F3FF)
+                                }
+                            )
+                            .border(
+                                1.dp,
+                                when (pomodoro.stage) {
+                                    PomodoroStage.FOCUS -> Color(0xFFBFDBFE)
+                                    PomodoroStage.SHORT_BREAK -> Color(0xFFA7F3D0)
+                                    PomodoroStage.LONG_BREAK -> Color(0xFFDDD6FE)
+                                },
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "${pomodoro.stage.title.uppercase()} • ROUND ${pomodoro.currentRound}/${pomodoro.roundsBeforeLongBreak}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = when (pomodoro.stage) {
+                                PomodoroStage.FOCUS -> Color(0xFF1D4ED8)
+                                PomodoroStage.SHORT_BREAK -> Color(0xFF047857)
+                                PomodoroStage.LONG_BREAK -> Color(0xFF6D28D9)
+                            },
+                            letterSpacing = 1.sp
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(AmbientSound.values()) { sound ->
-                        val isSel = (pomodoro.activeAmbientSound == sound)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSel) Color(sound.colorHex).copy(alpha = 0.15f) else Color(0xFFF8FAFC))
-                                .border(
-                                    1.dp,
-                                    if (isSel) Color(sound.colorHex) else Color(0xFFE2E8F0),
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable { viewModel.setAmbientSound(sound) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Column {
+                // Mode Selector Pills
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(2.dp, RoundedCornerShape(20.dp), spotColor = Color(0x0A000000))
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                        .padding(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            Triple(pomodoro.focusDurationMinutes, "${pomodoro.focusDurationMinutes}m Focus", PomodoroStage.FOCUS),
+                            Triple(pomodoro.shortBreakMinutes, "${pomodoro.shortBreakMinutes}m Short", PomodoroStage.SHORT_BREAK),
+                            Triple(pomodoro.longBreakMinutes, "${pomodoro.longBreakMinutes}m Long", PomodoroStage.LONG_BREAK)
+                        ).forEach { (modeMins, title, stage) ->
+                            val isCur = (pomodoro.stage == stage)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (isCur) VibrantBlue else Color.Transparent
+                                    )
+                                    .clickable { viewModel.setPomodoroMode(modeMins) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text(
-                                    text = sound.title,
+                                    text = title,
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSel) Color(sound.colorHex) else Color(0xFF334155)
+                                    fontWeight = if (isCur) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = if (isCur) Color.White else Color(0xFF64748B)
                                 )
-                                Text(
-                                    text = sound.subtitle,
-                                    fontSize = 9.sp,
-                                    color = if (isSel) Color(sound.colorHex) else Color(0xFF94A3B8)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // 3D Glowing Animated Focus Ring
+                Box(
+                    modifier = Modifier
+                        .size(240.dp)
+                        .threeDTilt(maxRotationDegrees = 12f, scaleOnTouch = 1.04f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    GlowingFocusRingCanvas(
+                        progress = progress,
+                        isRunning = pomodoro.isRunning,
+                        isBreak = pomodoro.isBreak
+                    )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = timeFormatted,
+                            fontSize = 44.sp,
+                            fontWeight = FontWeight.Black,
+                            color = VibrantTextDark,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                        Text(
+                            text = if (pomodoro.isRunning) (if (pomodoro.isBreak) "BREAK IN PROGRESS" else "FOCUSING") else "READY TO START",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (pomodoro.isRunning) VibrantBlue else Color(0xFF94A3B8)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Quick Increment / Decrement Time Bar
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("-5m", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), modifier = Modifier.clickable { viewModel.adjustPomodoroTime(-300) }.padding(horizontal = 6.dp, vertical = 4.dp))
+                    Text("-1m", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), modifier = Modifier.clickable { viewModel.adjustPomodoroTime(-60) }.padding(horizontal = 6.dp, vertical = 4.dp))
+                    Box(modifier = Modifier.width(1.dp).height(14.dp).background(Color(0xFFE2E8F0)))
+                    Text("+1m", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VibrantBlue, modifier = Modifier.clickable { viewModel.adjustPomodoroTime(60) }.padding(horizontal = 6.dp, vertical = 4.dp))
+                    Text("+5m", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VibrantBlue, modifier = Modifier.clickable { viewModel.adjustPomodoroTime(300) }.padding(horizontal = 6.dp, vertical = 4.dp))
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Timer Controls (Start/Pause, Reset, Skip)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { viewModel.resetPomodoro() },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .shadow(3.dp, CircleShape, spotColor = Color(0x10000000))
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reset",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.togglePomodoroTimer() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (pomodoro.isRunning) Color(0xFFEF4444) else VibrantBlue
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp),
+                        modifier = Modifier
+                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = if (pomodoro.isRunning) Color(0x33EF4444) else Color(0x332563EB))
+                            .testTag("pomodoro_toggle_button")
+                    ) {
+                        Icon(
+                            imageVector = if (pomodoro.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (pomodoro.isRunning) "PAUSE" else "START TIMER",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { viewModel.skipPomodoroStage() },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .shadow(3.dp, CircleShape, spotColor = Color(0x10000000))
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Skip Stage",
+                            tint = VibrantBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Ambient Soundscape Selector
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(3.dp, RoundedCornerShape(24.dp), spotColor = Color(0x0A000000))
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(24.dp))
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(VibrantBlueLight),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Headphones,
+                                    contentDescription = null,
+                                    tint = VibrantBlue,
+                                    modifier = Modifier.size(18.dp)
                                 )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Ambient Soundscape",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = VibrantTextDark
+                            )
+                        }
+
+                        // Sound active indicator
+                        if (pomodoro.activeAmbientSound != AmbientSound.SILENT) {
+                            AnimatedSoundVisualizer(color = Color(pomodoro.activeAmbientSound.colorHex))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(AmbientSound.values()) { sound ->
+                            val isSel = (pomodoro.activeAmbientSound == sound)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (isSel) Color(sound.colorHex).copy(alpha = 0.15f) else Color(0xFFF8FAFC))
+                                    .border(
+                                        1.dp,
+                                        if (isSel) Color(sound.colorHex) else Color(0xFFE2E8F0),
+                                        RoundedCornerShape(14.dp)
+                                    )
+                                    .clickable { viewModel.setAmbientSound(sound) }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Column {
+                                    Text(
+                                        text = sound.title,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSel) Color(sound.colorHex) else Color(0xFF334155)
+                                    )
+                                    Text(
+                                        text = sound.subtitle,
+                                        fontSize = 9.sp,
+                                        color = if (isSel) Color(sound.colorHex) else Color(0xFF94A3B8)
+                                    )
+                                }
                             }
                         }
                     }

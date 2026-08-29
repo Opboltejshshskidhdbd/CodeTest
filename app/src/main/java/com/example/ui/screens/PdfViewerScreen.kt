@@ -150,6 +150,7 @@ fun PdfViewerScreen(
                     StudyPageCardContent(
                         pageNumber = page,
                         sampleType = activeDoc.sampleType,
+                        isRealPdf = activeDoc.isRealPdf,
                         theme = currentTheme,
                         renderedBitmap = if (page == uiState.currentPage) uiState.renderedPageBitmap else null,
                         notesForPage = uiState.notes.filter { it.documentId == activeDoc.id && it.pageNumber == page }
@@ -167,6 +168,7 @@ fun PdfViewerScreen(
                         StudyPageCardContent(
                             pageNumber = pageNum,
                             sampleType = activeDoc.sampleType,
+                            isRealPdf = activeDoc.isRealPdf,
                             theme = currentTheme,
                             renderedBitmap = if (pageNum == uiState.currentPage) uiState.renderedPageBitmap else null,
                             notesForPage = uiState.notes.filter { it.documentId == activeDoc.id && it.pageNumber == pageNum }
@@ -496,6 +498,7 @@ private fun BottomViewerControlBar(
 private fun StudyPageCardContent(
     pageNumber: Int,
     sampleType: String?,
+    isRealPdf: Boolean = false,
     theme: ReaderTheme,
     renderedBitmap: androidx.compose.ui.graphics.ImageBitmap?,
     notesForPage: List<com.example.data.model.StudyNote>
@@ -566,10 +569,11 @@ private fun StudyPageCardContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .height(if (isRealPdf) 420.dp else 220.dp)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(Color.White)
-                        .border(1.dp, Color(0x33000000), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(14.dp))
+                        .padding(4.dp)
                 ) {
                     Image(
                         bitmap = renderedBitmap,

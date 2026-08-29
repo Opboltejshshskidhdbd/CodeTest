@@ -51,7 +51,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.AppThemeCustomizerDialog
 import com.example.ui.components.CreateStudyDocDialog
+import com.example.ui.components.CustomPomodoroSettingsDialog
 import com.example.ui.components.DocumentInfoDialog
 import com.example.ui.screens.FlashcardsScreen
 import com.example.ui.screens.FoldersScreen
@@ -70,7 +72,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            val uiState by viewModel.uiState.collectAsState()
+            MyApplicationTheme(appVisualTheme = uiState.appTheme) {
                 StudyPdfApp(viewModel = viewModel)
             }
         }
@@ -127,6 +130,24 @@ fun StudyPdfApp(viewModel: StudyPdfViewModel) {
                 DocumentInfoDialog(
                     document = uiState.activeDocument!!,
                     onDismiss = { viewModel.setShowDocInfoDialog(false) }
+                )
+            }
+
+            if (uiState.showThemeDialog) {
+                AppThemeCustomizerDialog(
+                    currentTheme = uiState.appTheme,
+                    onSelectTheme = { viewModel.setAppTheme(it) },
+                    onDismiss = { viewModel.setShowThemeDialog(false) }
+                )
+            }
+
+            if (uiState.showCustomTimerDialog) {
+                CustomPomodoroSettingsDialog(
+                    pomodoro = uiState.pomodoro,
+                    onSave = { focus, shortB, longB, rounds, autoAdv ->
+                        viewModel.updatePomodoroSettings(focus, shortB, longB, rounds, autoAdv)
+                    },
+                    onDismiss = { viewModel.setShowCustomTimerDialog(false) }
                 )
             }
         }

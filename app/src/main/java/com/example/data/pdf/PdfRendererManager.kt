@@ -11,6 +11,7 @@ import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.provider.OpenableColumns
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.example.data.sample.SampleStudyData
@@ -25,15 +26,30 @@ class PdfRendererManager(private val context: Context) {
     private var currentRenderer: PdfRenderer? = null
     private val pageBitmapCache = mutableMapOf<String, ImageBitmap>()
 
+    fun getFileNameFromUri(uri: Uri): String {
+        var name = "Document.pdf"
+        try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1 && cursor.moveToFirst()) {
+                    name = cursor.getString(nameIndex)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            uri.lastPathSegment?.let { name = it }
+        }
+        return name
+    }
+
     suspend fun openDocument(uriString: String?, sampleType: String? = null): Int = withContext(Dispatchers.IO) {
         closeCurrent()
         pageBitmapCache.clear()
 
         try {
-            val file: File = if (uriString != null && uriString.startsWith("content://")) {
-                // Copy stream to temp cache file
+            val file: File = if (uriString != null && (uriString.startsWith("content://") || uriString.startsWith("file://"))) {
                 val uri = Uri.parse(uriString)
-                val tempFile = File(context.cacheDir, "imported_${System.currentTimeMillis()}.pdf")
+                val tempFile = File(context.cacheDir, "doc_${System.currentTimeMillis()}.pdf")
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(tempFile).use { output ->
                         input.copyTo(output)
@@ -41,14 +57,16 @@ class PdfRendererManager(private val context: Context) {
                 }
                 tempFile
             } else {
-                // Generate a PDF on device for the sample or use dummy
+                // Generate a PDF on device for the sample or use cached sample
                 generateSamplePdfFile(sampleType ?: "physics")
             }
 
-            currentFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            currentFileDescriptor?.let { pfd ->
-                currentRenderer = PdfRenderer(pfd)
-                return@withContext currentRenderer?.pageCount ?: 1
+            if (file.exists() && file.length() > 0) {
+                currentFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                currentFileDescriptor?.let { pfd ->
+                    currentRenderer = PdfRenderer(pfd)
+                    return@withContext currentRenderer?.pageCount ?: 1
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -56,19 +74,26 @@ class PdfRendererManager(private val context: Context) {
         return@withContext 8
     }
 
-    suspend fun renderPage(pageIndex: Int, width: Int = 1080, height: Int = 1520): ImageBitmap? = withContext(Dispatchers.IO) {
-        val cacheKey = "$pageIndex-$width-$height"
+    suspend fun renderPage(pageIndex: Int, targetWidth: Int = 1080): ImageBitmap? = withContext(Dispatchers.IO) {
+        val cacheKey = "$pageIndex-$targetWidth"
         pageBitmapCache[cacheKey]?.let { return@withContext it }
 
         val renderer = currentRenderer
         if (renderer != null && pageIndex >= 0 && pageIndex < renderer.pageCount) {
             try {
                 val page = renderer.openPage(pageIndex)
-                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val pageWidth = page.width
+                val pageHeight = page.height
+                val aspectRatio = pageHeight.toFloat() / pageWidth.toFloat()
+                val finalWidth = targetWidth
+                val finalHeight = (targetWidth * aspectRatio).toInt().coerceIn(400, 2400)
+
+                val bitmap = Bitmap.createBitmap(finalWidth, finalHeight, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bitmap)
                 canvas.drawColor(AndroidColor.WHITE)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 page.close()
+
                 val imageBitmap = bitmap.asImageBitmap()
                 pageBitmapCache[cacheKey] = imageBitmap
                 return@withContext imageBitmap
@@ -136,7 +161,6 @@ class PdfRendererManager(private val context: Context) {
                     typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
                 }
 
-                // Simple wrap
                 val words = sec.body.split(" ")
                 var line = ""
                 words.forEach { w ->
@@ -212,3 +236,4 @@ class PdfRendererManager(private val context: Context) {
         }
     }
 }
+
